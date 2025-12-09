@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.venv/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Tests
+tests/
+htmlcov/
+.coverage
+
+# Development
+.env
+.env.local
+*.log
+
+# Build artifacts
+dist/
+build/
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+
+# Sibling projects (if any)
+generic/
+geney/
+krondor-chess/
+
+# Bin scripts (not needed in container)
+bin/

@@ -1,0 +1,173 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="max-w-xl mx-auto pb-24 px-4">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4 py-2">
+        <div class="flex items-center gap-3">
+            {% if game.status == 'complete' %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-muted text-foreground">
+                {% if game.winner == 'draw' %}
+                    Draw - {{ game.outcome }}
+                {% elif game.outcome == 'resignation' %}
+                    {{ game.winner|capitalize }} wins by resignation
+                {% else %}
+                    {{ game.winner|capitalize }} wins - {{ game.outcome }}
+                {% endif %}
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary text-primary-foreground">
+                {{ turn|capitalize }} to move
+            </span>
+            {% endif %}
+        </div>
+        <button
+            id="shareBtn"
+            onclick="copyShareLink()"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+            title="Copy game link"
+        >
+            <svg id="shareLinkIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            <svg id="shareCheckIcon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span id="shareText">Share</span>
+        </button>
+    </div>
+
+    <!-- Game board with SSE -->
+    <div
+        id="board-container"
+        hx-ext="sse"
+        sse-connect="/api/v0/games/{{ game.id }}/stream{% if pinned_perspective %}?perspective={{ perspective }}{% endif %}"
+        sse-swap="game-update-{{ game.id }}"
+        class="mb-6"
+        data-perspective="{{ perspective }}"
+    >
+        {{ board_html|safe }}
+    </div>
+
+    <!-- Move form (hidden until piece is selected) -->
+    {% if can_move and game.status != 'complete' %}
+    <div class="flex items-center justify-center gap-4">
+        <form id="moveForm" style="display: none;">
+            <input type="hidden" id="uciMoveInput" name="uciMove" value="">
+            <button
+                hx-post="/api/v0/games/{{ game.id }}/move"
+                hx-swap="none"
+                type="submit"
+                id="submitMove"
+                class="px-6 py-3 text-base font-medium rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+                Confirm Move
+            </button>
+        </form>
+
+        <!-- Resign button -->
+        <form id="resignForm" hx-post="/api/v0/games/{{ game.id }}/move" hx-swap="none">
+            <input type="hidden" name="uciMove" value="">
+            <input type="hidden" name="resign" value="true">
+            <button type="submit" class="px-6 py-3 text-base font-medium rounded-lg border border-destructive text-destructive hover:bg-destructive hover:text-white transition-colors">
+                Resign
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Sticky bottom perspective bar -->
+<div class="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t py-3 px-4">
+    <div class="max-w-xl mx-auto flex items-center justify-center">
+        <div class="inline-flex rounded-full bg-muted p-1">
+            <button
+                id="btn-white"
+                onclick="setPerspective('white')"
+                class="px-4 py-1.5 text-sm font-medium rounded-full transition-all {% if perspective == 'white' and pinned_perspective %}bg-background text-foreground shadow-sm{% else %}text-muted-foreground hover:text-foreground{% endif %}"
+            >
+                White
+            </button>
+            <button
+                id="btn-auto"
+                onclick="setPerspective('auto')"
+                class="px-4 py-1.5 text-sm font-medium rounded-full transition-all {% if not pinned_perspective %}bg-background text-foreground shadow-sm{% else %}text-muted-foreground hover:text-foreground{% endif %}"
+            >
+                Auto
+            </button>
+            <button
+                id="btn-black"
+                onclick="setPerspective('black')"
+                class="px-4 py-1.5 text-sm font-medium rounded-full transition-all {% if perspective == 'black' and pinned_perspective %}bg-background text-foreground shadow-sm{% else %}text-muted-foreground hover:text-foreground{% endif %}"
+            >
+                Black
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/board.js"></script>
+<script>
+    // Share link copy (with fallback for non-HTTPS)
+    function copyShareLink() {
+        const url = window.location.href.split('?')[0];
+        const btn = document.getElementById('shareBtn');
+        const text = document.getElementById('shareText');
+        const linkIcon = document.getElementById('shareLinkIcon');
+        const checkIcon = document.getElementById('shareCheckIcon');
+
+        // Fallback for non-secure contexts (0.0.0.0, http://)
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        // Show success state
+        text.innerText = 'Copied!';
+        linkIcon.classList.add('hidden');
+        checkIcon.classList.remove('hidden');
+        btn.classList.add('text-green-600');
+        btn.classList.remove('text-muted-foreground');
+
+        // Reset after 2 seconds
+        setTimeout(() => {
+            text.innerText = 'Share';
+            linkIcon.classList.remove('hidden');
+            checkIcon.classList.add('hidden');
+            btn.classList.remove('text-green-600');
+            btn.classList.add('text-muted-foreground');
+        }, 2000);
+    }
+
+    // Perspective management
+    function setPerspective(mode) {
+        const url = new URL(window.location.href);
+        if (mode === 'auto') {
+            url.searchParams.delete('perspective');
+        } else {
+            url.searchParams.set('perspective', mode);
+        }
+        window.location.href = url.toString();
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof initBoard === 'function') {
+            initBoard();
+        }
+    });
+
+    // Reinitialize board after SSE update
+    document.body.addEventListener('htmx:sseMessage', function(event) {
+        if (typeof initBoard === 'function') {
+            setTimeout(initBoard, 50);
+        }
+    });
+
+    // Refresh page after resign
+    document.getElementById('resignForm')?.addEventListener('htmx:afterRequest', function(event) {
+        if (event.detail.successful) {
+            window.location.reload();
+        }
+    });
+</script>
+{% endblock %}

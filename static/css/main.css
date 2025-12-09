@@ -1,0 +1,228 @@
+/* Chess board styles */
+.chess-board {
+    border-collapse: collapse;
+    border: none;
+    margin: 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.chess-board td {
+    width: 64px;
+    height: 64px;
+    text-align: center;
+    vertical-align: middle;
+    font-size: 46px;
+    line-height: 64px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease;
+}
+
+.chess-square-light {
+    background-color: #f0d9b5;
+}
+
+.chess-square-dark {
+    background-color: #b58863;
+}
+
+.dark .chess-square-light {
+    background-color: #eeeeee;
+}
+
+.dark .chess-square-dark {
+    background-color: #769656;
+}
+
+/* Piece styling for visibility */
+.chess-board td {
+    font-weight: bold;
+}
+
+/* White pieces (outline unicode) - need dark outline for visibility */
+.chess-board td[class*="chess-piece-P"],
+.chess-board td[class*="chess-piece-N"],
+.chess-board td[class*="chess-piece-B"],
+.chess-board td[class*="chess-piece-R"],
+.chess-board td[class*="chess-piece-Q"],
+.chess-board td[class*="chess-piece-K"] {
+    color: #fff;
+    text-shadow:
+        -1px 0 0 #000,
+        1px 0 0 #000,
+        0 -1px 0 #000,
+        0 1px 0 #000;
+}
+
+/* Black pieces (filled unicode) - need light outline for visibility on dark squares */
+.chess-board td.chess-piece-p,
+.chess-board td.chess-piece-n,
+.chess-board td.chess-piece-b,
+.chess-board td.chess-piece-r,
+.chess-board td.chess-piece-q,
+.chess-board td.chess-piece-k {
+    color: #000;
+    text-shadow:
+        -1px 0 0 #fff,
+        1px 0 0 #fff,
+        0 -1px 0 #fff,
+        0 1px 0 #fff;
+}
+
+.chess-board td.selected {
+    background-color: #f6f669 !important;
+    box-shadow: inset 0 0 0 3px #baca44;
+}
+
+.chess-board td.legal-move {
+    position: relative;
+}
+
+.chess-board td.legal-move::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Capture hint - ring instead of dot */
+.chess-board td.legal-move[class*="chess-piece-"]::after {
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    border: 5px solid rgba(0, 0, 0, 0.12);
+    border-radius: 0;
+    box-sizing: border-box;
+}
+
+.chess-board td:hover {
+    filter: brightness(1.05);
+}
+
+/* Custom color variables for theming */
+:root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --border: 214.3 31.8% 91.4%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+}
+
+.dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --border: 217.2 32.6% 17.5%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+}
+
+body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+}
+
+.bg-background {
+    background-color: hsl(var(--background));
+}
+
+.bg-muted {
+    background-color: hsl(var(--muted));
+}
+
+.text-foreground {
+    color: hsl(var(--foreground));
+}
+
+.text-muted-foreground {
+    color: hsl(var(--muted-foreground));
+}
+
+.border {
+    border-color: hsl(var(--border));
+}
+
+.border-r {
+    border-right-width: 1px;
+    border-right-style: solid;
+    border-right-color: hsl(var(--border));
+}
+
+.border-t {
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-top-color: hsl(var(--border));
+}
+
+.border-b {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: hsl(var(--border));
+}
+
+/* Primary button colors for perspective toggle */
+.bg-primary {
+    background-color: hsl(var(--primary));
+}
+
+.text-primary-foreground {
+    color: hsl(var(--primary-foreground));
+}
+
+.hover\:bg-muted:hover {
+    background-color: hsl(var(--muted));
+}
+
+/* Destructive button styles */
+.text-destructive {
+    color: hsl(var(--destructive));
+}
+
+.border-destructive {
+    border-color: hsl(var(--destructive));
+}
+
+.bg-destructive {
+    background-color: hsl(var(--destructive));
+}
+
+.hover\:bg-destructive:hover {
+    background-color: hsl(var(--destructive));
+}
+
+.hover\:text-white:hover {
+    color: #fff;
+}
+
+/* Success color */
+.text-green-600 {
+    color: #16a34a;
+}
+
+/* Utility */
+.hidden {
+    display: none;
+}
