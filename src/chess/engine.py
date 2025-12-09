@@ -135,9 +135,7 @@ class DummyEngine:
 
         # Simulate variable thinking time based on depth
         # TODO: Remove this delay when using a real engine
-        delay = self._min_delay + (hash_value % 1000) / 1000 * (
-            self._max_delay - self._min_delay
-        )
+        delay = self._min_delay + (hash_value % 1000) / 1000 * (self._max_delay - self._min_delay)
         delay *= 1 + depth * 0.02  # Slightly longer for higher depth
         await asyncio.sleep(delay)
 
