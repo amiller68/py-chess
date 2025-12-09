@@ -1,0 +1,12 @@
+{% extends "layouts/base.html" %}
+{% block body %}
+<div class="min-h-screen flex items-center justify-center bg-muted">
+    <div class="w-full max-w-md">
+        {% if content %}
+            {{ content|safe }}
+        {% else %}
+            {% block content %}{% endblock %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

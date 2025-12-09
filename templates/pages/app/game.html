@@ -1,0 +1,90 @@
+{% block content %}
+<div>
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold">Game</h1>
+            <p class="text-sm text-muted-foreground">{{ game.id }}</p>
+        </div>
+        <div>
+            {% if game.status == 'complete' %}
+            <span class="uk-badge uk-badge-secondary">
+                {% if game.winner == 'draw' %}
+                    Draw - {{ game.outcome }}
+                {% else %}
+                    {{ game.winner|capitalize }} wins - {{ game.outcome }}
+                {% endif %}
+            </span>
+            {% else %}
+            <span class="uk-badge uk-badge-primary">
+                {{ game.status }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Game board with SSE -->
+    <div
+        id="board-container"
+        hx-ext="sse"
+        sse-connect="/api/v0/games/{{ game.id }}/stream"
+        sse-swap="game-update-{{ game.id }}"
+        class="mb-6"
+    >
+        {{ board_html|safe }}
+    </div>
+
+    <!-- Move form (hidden until piece is selected) -->
+    {% if can_move and game.status != 'complete' %}
+    <form id="moveForm" style="display: none;" class="mb-4">
+        <input type="hidden" id="uciMoveInput" name="uciMove" value="">
+        <button
+            hx-post="/api/v0/games/{{ game.id }}/move"
+            hx-swap="none"
+            type="submit"
+            id="submitMove"
+            class="uk-button uk-button-primary"
+        >
+            Confirm Move
+        </button>
+    </form>
+
+    <!-- Resign button -->
+    <form hx-post="/api/v0/games/{{ game.id }}/move" hx-swap="none">
+        <input type="hidden" name="uciMove" value="">
+        <input type="hidden" name="resign" value="true">
+        <button type="submit" class="uk-button uk-button-danger">
+            Resign
+        </button>
+    </form>
+    {% endif %}
+
+    <!-- Share link for inviting opponent -->
+    {% if game.status == 'created' %}
+    <div class="uk-card uk-card-default uk-card-body mt-6">
+        <h3 class="font-semibold mb-2">Invite Opponent</h3>
+        <p class="text-sm text-muted-foreground mb-2">
+            Share this link with a friend to play:
+        </p>
+        <code class="block p-2 bg-muted rounded text-sm break-all">
+            {{ request.url }}
+        </code>
+    </div>
+    {% endif %}
+</div>
+
+<script src="/static/js/board.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (typeof initBoard === 'function') {
+            initBoard();
+        }
+    });
+
+    // Reinitialize board after SSE update
+    document.body.addEventListener('htmx:sseMessage', function(event) {
+        if (typeof initBoard === 'function') {
+            setTimeout(initBoard, 50);
+        }
+    });
+</script>
+{% endblock %}
