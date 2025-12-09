@@ -1,0 +1,86 @@
+#!/bin/bash
+
+# kamal - Deployment script using Kamal with automatic configuration
+# Loads secrets from 1Password and infrastructure outputs from Terraform
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+source "$PROJECT_ROOT/bin/utils"
+source "$PROJECT_ROOT/bin/config"
+source "$PROJECT_ROOT/bin/vault"
+
+usage() {
+    local service_names=$(list_service_names)
+
+    echo -e "${YELLOW}Kamal Deployment Tool${NC}"
+    echo ""
+    echo "Usage: $0 <service> <stage> <command> [options]"
+    echo ""
+    echo " Where <service> is one of the following:"
+    echo "  ${service_names}"
+    echo " And <stage> is one of the following:"
+    echo "  ${STAGES}"
+    echo " And <command> is any valid Kamal command"
+    echo ""
+    echo "Examples:"
+    echo "  $0 chess production deploy      # Deploy chess app"
+    echo "  $0 chess production logs        # View logs"
+    exit 1
+}
+
+if [[ $# -lt 3 ]]; then
+    usage
+fi
+
+SERVICE="$1"
+STAGE="$2"
+shift 2
+
+if ! is_in_list "$SERVICES" "$SERVICE"; then
+    print_error "Unknown service: $SERVICE"
+    echo "Available services: $SERVICES"
+    exit 1
+fi
+
+if ! is_in_list "$STAGES" "$STAGE"; then
+    print_error "Unknown stage: $STAGE"
+    echo "Available stages: $STAGES"
+    exit 1
+fi
+
+CONFIG_FILE="$PROJECT_ROOT/config/deploy/${SERVICE}.yml"
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    print_error "Config file not found: $CONFIG_FILE"
+    exit 1
+fi
+
+# Get infrastructure outputs
+export SERVER_IP=$("$PROJECT_ROOT/bin/iac" "$STAGE" output -raw server_ip 2>/dev/null | tail -n 1 || echo "")
+export SSH_PRIVATE_KEY=$("$PROJECT_ROOT/bin/iac" "$STAGE" output -raw ssh_private_key 2>/dev/null | tail -n -13 || echo "")
+export DOCKER_HUB_USERNAME=$("$PROJECT_ROOT/bin/vault" read DOCKER_HUB_USERNAME)
+export PROJECT_NAME=$PROJECT_NAME
+
+# Handle SSH key - local vs CI
+if [[ -z "${CI:-}" ]]; then
+    SSH_PRIVATE_KEY_FILE="$PROJECT_ROOT/.kamal/ssh_key"
+    echo "$SSH_PRIVATE_KEY" > "$SSH_PRIVATE_KEY_FILE"
+    chmod 600 "$SSH_PRIVATE_KEY_FILE"
+    export SSH_PRIVATE_KEY_FILE
+    trap 'print_info "Cleaning up SSH private key file" && rm -f "$SSH_PRIVATE_KEY_FILE"' EXIT
+else
+    print_info "Running in CI - using SSH agent for authentication"
+fi
+
+# Set hostname for the service
+HOST_NAME=$(get_service_hostname "$SERVICE" "$STAGE")
+export HOST_NAME
+export_service_hostnames "$STAGE"
+
+print_info "Running Kamal for $SERVICE on $STAGE"
+echo "-> Using config file: $CONFIG_FILE"
+echo "-> Target hostname: $HOST_NAME"
+echo "-> Host: $SERVER_IP"
+
+run_with_vault --stage "$STAGE" -- kamal "$@" -c "$CONFIG_FILE"

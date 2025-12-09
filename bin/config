@@ -1,0 +1,245 @@
+#!/usr/bin/env bash
+
+# Project configuration loader
+# Provides functions for accessing project config
+
+# Set PROJECT_ROOT if not already set
+if [ -z "$PROJECT_ROOT" ]; then
+    PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}")/.." && pwd )"
+fi
+
+# Source project configuration with validation
+source_project_config() {
+    if [ -f "$PROJECT_ROOT/.env.project" ]; then
+        source "$PROJECT_ROOT/.env.project"
+    else
+        echo -e "${RED}Error: .env.project not found.${NC}"
+        return 1
+    fi
+    if [ ! -f "$PROJECT_ROOT/.env.vault" ]; then
+        echo -e "${RED}Error: .env.vault not found.${NC}"
+        return 1
+    fi
+
+    # Validate required variables
+    local required_vars=("PROJECT_NAME" "CLOUD_VAULT" "SERVICES" "DNS_ROOT_ZONE")
+    local missing_vars=()
+
+    for var in "${required_vars[@]}"; do
+        if [ -z "${!var}" ]; then
+            missing_vars+=("$var")
+        fi
+    done
+
+    if [ ${#missing_vars[@]} -gt 0 ]; then
+        echo -e "${RED}Error: Missing required variables in .env.project:${NC}"
+        for var in "${missing_vars[@]}"; do
+            echo -e "${RED}  - $var${NC}"
+        done
+        return 1
+    fi
+
+    return 0
+}
+
+# Get services with their subdomains
+services() {
+    if [ ! -d "$PROJECT_ROOT/config/deploy" ]; then
+        echo -e "${RED}Error: config/deploy directory not found.${NC}"
+        return 1
+    fi
+
+    local kamal_services=$(ls "$PROJECT_ROOT/config/deploy" | sed 's/.yml//' | paste -sd, -)
+    if [ -z "$kamal_services" ]; then
+        echo -e "${RED}Error: No services found${NC}"
+        exit 1
+    fi
+
+    local project_service_names=$(echo "$SERVICES" | tr ',' '\n' | cut -d':' -f1)
+
+    for service in $(echo "$kamal_services" | tr ',' ' '); do
+        if ! echo "$project_service_names" | grep -q "^${service}$"; then
+            echo -e "${RED}Error: Service '$service' in config/deploy not found in .env.project${NC}"
+            exit 1
+        fi
+    done
+
+    local service_list=""
+    for service in $(echo "$kamal_services" | tr ',' ' '); do
+        local subdomain=$(echo "$SERVICES" | tr ',' '\n' | grep "^${service}:" | cut -d':' -f2)
+        service_list+="${service}:${subdomain} "
+    done
+
+    echo "${service_list% }"
+}
+
+# List just the service names
+list_service_names() {
+    local service_pairs=$(services)
+    local names=""
+
+    for service_pair in $service_pairs; do
+        local service_name="${service_pair%%:*}"
+        names+="$service_name "
+    done
+
+    echo "${names% }"
+}
+
+# List stages from iac/stages
+stages() {
+    if [ ! -d "$PROJECT_ROOT/iac/stages" ]; then
+        echo -e "${RED}Error: iac/stages directory not found.${NC}"
+        return 1
+    fi
+
+    local iac_stages=$(ls "$PROJECT_ROOT/iac/stages" 2>/dev/null | paste -sd, -)
+    if [ -z "$iac_stages" ]; then
+        echo -e "${RED}Error: No stages found${NC}"
+        exit 1
+    fi
+
+    if echo "$iac_stages" | grep -q "development"; then
+        echo -e "${RED}Error: 'development' stage is not allowed in iac${NC}"
+        exit 1
+    fi
+
+    echo "$iac_stages" | tr ',' ' '
+}
+
+# Get the hostname for a service in a given stage
+get_service_hostname() {
+    local service="$1"
+    local stage="$2"
+
+    if [ -z "$service" ] || [ -z "$stage" ]; then
+        echo -e "${RED}Error: get_service_hostname requires service and stage arguments${NC}" >&2
+        return 1
+    fi
+
+    local service_pairs=$(services)
+    local subdomain=""
+
+    for service_pair in $service_pairs; do
+        local service_name="${service_pair%%:*}"
+        if [ "$service_name" = "$service" ]; then
+            subdomain="${service_pair#*:}"
+            break
+        fi
+    done
+
+    local hostname="${DNS_ROOT_ZONE}"
+
+    if [[ -n "$subdomain" ]]; then
+        hostname="${subdomain}.${hostname}"
+    fi
+
+    if [[ "$stage" != "production" ]]; then
+        hostname="${stage}.${hostname}"
+    fi
+
+    echo "$hostname"
+}
+
+# List subdomains for a given stage
+list_subdomains() {
+    local stage="$1"
+
+    if [ -z "$stage" ]; then
+        echo -e "${RED}Error: list_subdomains requires stage argument${NC}" >&2
+        return 1
+    fi
+
+    local service_pairs=$(services)
+    local subdomains=""
+
+    for service_pair in $service_pairs; do
+        local subdomain="${service_pair#*:}"
+
+        if [ -z "$subdomain" ]; then
+            subdomain="@"
+        fi
+
+        if [[ "$stage" != "production" ]]; then
+            if [ "$subdomain" = "@" ]; then
+                subdomain="$stage"
+            else
+                subdomain="${stage}.${subdomain}"
+            fi
+        fi
+
+        subdomains+="$subdomain "
+    done
+
+    echo "${subdomains% }"
+}
+
+# Export service hostnames as environment variables
+export_service_hostnames() {
+    local stage="${1}"
+    if [[ -z "$stage" ]]; then
+        echo -e "${RED}Error: Stage not set${NC}"
+        exit 1
+    fi
+
+    local service_pairs=$(services)
+
+    for service_pair in $service_pairs; do
+        local service_name="${service_pair%%:*}"
+        local hostname=$(get_service_hostname "$service_name" "$stage")
+        local var_name=$(echo "${service_name}" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+        var_name="${var_name}_HOST_NAME"
+        export "${var_name}=${hostname}"
+    done
+}
+
+source_project_config
+
+if ! services > /dev/null; then
+    exit 1
+fi
+
+# Check if script is being executed directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    source $PROJECT_ROOT/bin/utils
+
+    print_header "Project Configuration"
+
+    echo ""
+    print_info "Project:"
+    echo "  Name: $PROJECT_NAME"
+    echo "  DNS Root Zone: $DNS_ROOT_ZONE"
+    echo "  Cloud Vault: $CLOUD_VAULT"
+
+    echo ""
+    print_info "Services:"
+    for service_pair in $(services); do
+        service_name="${service_pair%%:*}"
+        subdomain="${service_pair#*:}"
+        if [ -z "$subdomain" ]; then
+            echo "  - $service_name (root domain)"
+        else
+            echo "  - $service_name (subdomain: $subdomain)"
+        fi
+    done
+
+    echo ""
+    print_info "Stages:"
+    for stage in $(stages); do
+        echo "  - $stage"
+    done
+
+    echo ""
+    print_info "Production Hostnames:"
+    for service_pair in $(services); do
+        service_name="${service_pair%%:*}"
+        hostname=$(get_service_hostname "$service_name" "production")
+        echo "  - $service_name: $hostname"
+    done
+else
+    source_project_config
+    if ! services > /dev/null; then
+        exit 1
+    fi
+    export STAGES=$(stages)
+fi

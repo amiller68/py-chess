@@ -2,10 +2,48 @@
 let selectedPiece = null;
 let fromSquare = null;
 let toSquare = null;
+let legalMoves = {};
 
-// Check if a square has a piece
-function squareHasPiece(square) {
-    return square.innerHTML.trim() !== '';
+// Get legal moves from board data attribute
+function getLegalMoves() {
+    const chessboard = document.getElementById('chessboard');
+    if (!chessboard) return {};
+    try {
+        return JSON.parse(chessboard.getAttribute('data-legal-moves') || '{}');
+    } catch (e) {
+        return {};
+    }
+}
+
+// Check if a square has a piece that can move
+function canSelectPiece(square) {
+    const squareId = square.getAttribute('id');
+    return legalMoves[squareId] && legalMoves[squareId].length > 0;
+}
+
+// Check if a move is legal
+function isLegalMove(fromId, toId) {
+    return legalMoves[fromId] && legalMoves[fromId].includes(toId);
+}
+
+// Highlight legal destination squares
+function highlightLegalMoves(fromId) {
+    clearHighlights();
+    const destinations = legalMoves[fromId] || [];
+    for (const toId of destinations) {
+        const square = document.getElementById(toId);
+        if (square) {
+            square.classList.add('legal-move');
+        }
+    }
+}
+
+// Clear all highlights
+function clearHighlights() {
+    const squares = document.querySelectorAll('.legal-move');
+    for (const sq of squares) {
+        sq.classList.remove('legal-move');
+    }
 }
 
 // Logic for moving a piece
@@ -87,6 +125,7 @@ function initBoard() {
     selectedPiece = null;
     fromSquare = null;
     toSquare = null;
+    legalMoves = getLegalMoves();
 
     const moveForm = document.getElementById('moveForm');
     const moveInput = document.getElementById('uciMoveInput');
@@ -98,6 +137,8 @@ function initBoard() {
         moveInput.value = '';
     }
 
+    clearHighlights();
+
     // Find the chessboard
     const chessboard = document.getElementById('chessboard');
     if (!chessboard) {
@@ -108,29 +149,55 @@ function initBoard() {
     const newBoard = chessboard.cloneNode(true);
     chessboard.parentNode.replaceChild(newBoard, chessboard);
 
+    // Re-read legal moves from the new board
+    legalMoves = getLegalMoves();
+
     // Add click handler
     newBoard.addEventListener('click', function(event) {
         const clickedSquare = event.target.closest('[class*="chess-square-"]');
         if (!clickedSquare) return;
 
-        if (!selectedPiece && squareHasPiece(clickedSquare)) {
-            // Select the piece
-            selectedPiece = clickedSquare;
-            fromSquare = clickedSquare;
-            clickedSquare.classList.add('selected');
-        } else if (selectedPiece) {
+        const clickedId = clickedSquare.getAttribute('id');
+
+        if (!selectedPiece) {
+            // Try to select a piece
+            if (canSelectPiece(clickedSquare)) {
+                selectedPiece = clickedSquare;
+                fromSquare = clickedSquare;
+                clickedSquare.classList.add('selected');
+                highlightLegalMoves(clickedId);
+            }
+        } else {
+            const fromId = selectedPiece.getAttribute('id');
+
             if (clickedSquare === selectedPiece) {
                 // Deselect
                 clickedSquare.classList.remove('selected');
+                clearHighlights();
                 selectedPiece = null;
                 return;
             }
 
-            // Move the piece
-            toSquare = clickedSquare;
-            movePiece(selectedPiece, clickedSquare);
-            selectedPiece.classList.remove('selected');
-            selectedPiece = null;
+            // Check if clicking another piece that can move
+            if (canSelectPiece(clickedSquare) && !isLegalMove(fromId, clickedId)) {
+                // Switch selection to new piece
+                selectedPiece.classList.remove('selected');
+                clearHighlights();
+                selectedPiece = clickedSquare;
+                fromSquare = clickedSquare;
+                clickedSquare.classList.add('selected');
+                highlightLegalMoves(clickedId);
+                return;
+            }
+
+            // Check if legal move
+            if (isLegalMove(fromId, clickedId)) {
+                toSquare = clickedSquare;
+                movePiece(selectedPiece, clickedSquare);
+                selectedPiece.classList.remove('selected');
+                clearHighlights();
+                selectedPiece = null;
+            }
         }
     });
 }
@@ -156,6 +223,7 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
     selectedPiece = null;
     fromSquare = null;
     toSquare = null;
+    clearHighlights();
 });
 
 // Initialize on page load

@@ -1,4 +1,5 @@
 import os
+import signal
 import sys
 from typing import Optional
 
@@ -30,6 +31,15 @@ app = create_app(state) if state else None
 
 def main() -> int:
     """Main entrypoint for the server"""
+
+    def signal_handler(signum: int, frame: object) -> None:
+        print(f"\n✓ Received signal {signum}, shutting down...")
+        sys.exit(0)
+
+    # Handle SIGINT (Ctrl+C) and SIGTERM gracefully
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     try:
         if not state or not app:
             print("✗ Failed to initialize application")
@@ -56,6 +66,9 @@ def main() -> int:
                 port=config.listen_port,
                 proxy_headers=True,
             )
+        return 0
+    except KeyboardInterrupt:
+        print("\n✓ Server stopped by user")
         return 0
     except Exception as e:
         print(f"✗ Unexpected error: {e}")

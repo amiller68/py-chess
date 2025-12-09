@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{% block title %}py-chess{% endblock %}</title>
+
+        <!-- Hot reloading for development mode -->
+        <script>
+            if (window.location.hostname === "localhost") {
+                const hotReload = new EventSource("/dev/hot-reload");
+                hotReload.addEventListener("reload", () => location.reload());
+                hotReload.onerror = () => setTimeout(() => location.reload(), 5000);
+            }
+        </script>
+
+        <!-- Inter font -->
+        <link rel="preconnect" href="https://rsms.me/" />
+        <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+
+        <!-- Franken UI -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/franken-ui@next/dist/css/core.min.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/franken-ui@next/dist/css/utilities.min.css" />
+
+        <script>
+            const htmlElement = document.documentElement;
+            if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+                htmlElement.classList.add("dark");
+            }
+        </script>
+
+        <script type="module" src="https://cdn.jsdelivr.net/npm/franken-ui@next/dist/js/core.iife.js"></script>
+
+        <!-- HTMX -->
+        <script src="https://unpkg.com/htmx.org@2.0.0"></script>
+        <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+
+        <link rel="stylesheet" href="/static/css/main.css" />
+        {% block head %}{% endblock %}
+    </head>
+    <body class="bg-background text-foreground">
+        <div class="min-h-screen">
+            <!-- Header -->
+            <header class="border-b">
+                <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+                    <a href="/" class="flex items-center gap-2 text-xl font-bold">
+                        <span class="text-2xl">♔</span>
+                        <span>py-chess</span>
+                    </a>
+                    <a href="/games/new" class="uk-button uk-button-primary uk-button-small">
+                        New Game
+                    </a>
+                </div>
+            </header>
+
+            <!-- Main content -->
+            <main class="container mx-auto px-4 py-8">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+        <script type="module" src="https://cdn.jsdelivr.net/npm/franken-ui@next/dist/js/icon.iife.js"></script>
+    </body>
+</html>

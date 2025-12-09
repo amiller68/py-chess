@@ -1,19 +1,23 @@
 /* Chess board styles */
 .chess-board {
     border-collapse: collapse;
-    border: 2px solid hsl(var(--border));
+    border: none;
     margin: 0 auto;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
 }
 
 .chess-board td {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
     text-align: center;
     vertical-align: middle;
-    font-size: 40px;
+    font-size: 46px;
+    line-height: 64px;
     cursor: pointer;
     user-select: none;
-    transition: background-color 0.1s ease;
+    transition: background-color 0.15s ease;
 }
 
 .chess-square-light {
@@ -25,20 +29,82 @@
 }
 
 .dark .chess-square-light {
-    background-color: #e8d5b5;
+    background-color: #eeeeee;
 }
 
 .dark .chess-square-dark {
-    background-color: #a87c5f;
+    background-color: #769656;
+}
+
+/* Piece styling for visibility */
+.chess-board td {
+    font-weight: bold;
+}
+
+/* White pieces (outline unicode) - need dark outline for visibility */
+.chess-board td[class*="chess-piece-P"],
+.chess-board td[class*="chess-piece-N"],
+.chess-board td[class*="chess-piece-B"],
+.chess-board td[class*="chess-piece-R"],
+.chess-board td[class*="chess-piece-Q"],
+.chess-board td[class*="chess-piece-K"] {
+    color: #fff;
+    text-shadow:
+        -1px 0 0 #000,
+        1px 0 0 #000,
+        0 -1px 0 #000,
+        0 1px 0 #000;
+}
+
+/* Black pieces (filled unicode) - need light outline for visibility on dark squares */
+.chess-board td.chess-piece-p,
+.chess-board td.chess-piece-n,
+.chess-board td.chess-piece-b,
+.chess-board td.chess-piece-r,
+.chess-board td.chess-piece-q,
+.chess-board td.chess-piece-k {
+    color: #000;
+    text-shadow:
+        -1px 0 0 #fff,
+        1px 0 0 #fff,
+        0 -1px 0 #fff,
+        0 1px 0 #fff;
 }
 
 .chess-board td.selected {
-    background-color: #ffff00 !important;
-    box-shadow: inset 0 0 0 3px #ffcc00;
+    background-color: #f6f669 !important;
+    box-shadow: inset 0 0 0 3px #baca44;
+}
+
+.chess-board td.legal-move {
+    position: relative;
+}
+
+.chess-board td.legal-move::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Capture hint - ring instead of dot */
+.chess-board td.legal-move[class*="chess-piece-"]::after {
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    border: 5px solid rgba(0, 0, 0, 0.12);
+    border-radius: 0;
+    box-sizing: border-box;
 }
 
 .chess-board td:hover {
-    opacity: 0.8;
+    filter: brightness(1.05);
 }
 
 /* Custom color variables for theming */
@@ -115,4 +181,48 @@ body {
     border-bottom-width: 1px;
     border-bottom-style: solid;
     border-bottom-color: hsl(var(--border));
+}
+
+/* Primary button colors for perspective toggle */
+.bg-primary {
+    background-color: hsl(var(--primary));
+}
+
+.text-primary-foreground {
+    color: hsl(var(--primary-foreground));
+}
+
+.hover\:bg-muted:hover {
+    background-color: hsl(var(--muted));
+}
+
+/* Destructive button styles */
+.text-destructive {
+    color: hsl(var(--destructive));
+}
+
+.border-destructive {
+    border-color: hsl(var(--destructive));
+}
+
+.bg-destructive {
+    background-color: hsl(var(--destructive));
+}
+
+.hover\:bg-destructive:hover {
+    background-color: hsl(var(--destructive));
+}
+
+.hover\:text-white:hover {
+    color: #fff;
+}
+
+/* Success color */
+.text-green-600 {
+    color: #16a34a;
+}
+
+/* Utility */
+.hidden {
+    display: none;
 }

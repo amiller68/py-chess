@@ -38,7 +38,7 @@ dev = [
     "pytest>=8.3",
     "pytest-asyncio>=0.25",
     "ruff>=0.8",
-    "mypy>=1.13",
+    "ty>=0.0.1a7",
 ]
 
 [tool.ruff]
@@ -50,11 +50,13 @@ exclude = ["generic", "geney"]
 select = ["E", "F", "I", "W"]
 ignore = ["E501"]
 
-[tool.mypy]
-python_version = "3.12"
-warn_return_any = true
-warn_unused_ignores = true
-ignore_missing_imports = true
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.rules]
+# Ignore errors for third-party libraries without type stubs
+unresolved-import = "ignore"
+unresolved-attribute = "ignore"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

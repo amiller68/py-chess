@@ -1,21 +1,24 @@
 """Chess board HTML rendering"""
 
+import json
+
 import chess
 
-# Unicode chess piece symbols
+# Unicode chess piece symbols (same as krondor-chess)
+# White pieces use outline glyphs, black pieces use filled glyphs
 PIECE_SYMBOLS = {
-    "P": "♙",  # White pawn
-    "N": "♘",  # White knight
-    "B": "♗",  # White bishop
-    "R": "♖",  # White rook
-    "Q": "♕",  # White queen
-    "K": "♔",  # White king
-    "p": "♟",  # Black pawn
-    "n": "♞",  # Black knight
-    "b": "♝",  # Black bishop
-    "r": "♜",  # Black rook
-    "q": "♛",  # Black queen
-    "k": "♚",  # Black king
+    "P": "♙",  # White pawn (outline)
+    "N": "♘",  # White knight (outline)
+    "B": "♗",  # White bishop (outline)
+    "R": "♖",  # White rook (outline)
+    "Q": "♕",  # White queen (outline)
+    "K": "♔",  # White king (outline)
+    "p": "♟︎",  # Black pawn (filled)
+    "n": "♞",  # Black knight (filled)
+    "b": "♝",  # Black bishop (filled)
+    "r": "♜",  # Black rook (filled)
+    "q": "♛",  # Black queen (filled)
+    "k": "♚",  # Black king (filled)
 }
 
 
@@ -28,6 +31,8 @@ def render_board_html(fen: str, perspective: str = "white") -> str:
     - class: chess-square-{light|dark} [chess-piece-{symbol}]
     - content: Unicode chess piece symbol
 
+    The table includes data-legal-moves with a JSON map of from_square -> [to_squares]
+
     Args:
         fen: FEN string representing the board position
         perspective: "white" or "black" - which side is at the bottom
@@ -37,7 +42,18 @@ def render_board_html(fen: str, perspective: str = "white") -> str:
     """
     board = chess.Board(fen)
 
-    html = '<table id="chessboard" class="chess-board">'
+    # Build legal moves map: {from_square: [to_squares]}
+    legal_moves_map: dict[str, list[str]] = {}
+    for move in board.legal_moves:
+        from_sq = chess.square_name(move.from_square)
+        to_sq = chess.square_name(move.to_square)
+        if from_sq not in legal_moves_map:
+            legal_moves_map[from_sq] = []
+        legal_moves_map[from_sq].append(to_sq)
+
+    legal_moves_json = json.dumps(legal_moves_map)
+
+    html = f'<table id="chessboard" class="chess-board" data-legal-moves=\'{legal_moves_json}\'>'
 
     # Determine iteration order based on perspective
     if perspective == "white":

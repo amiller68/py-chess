@@ -11,13 +11,12 @@ router = APIRouter()
 @router.post("/{game_id}/move")
 async def make_move(
     game_id: str,
-    uci_move: str = Form(alias="uciMove"),
+    uci_move: str = Form(default="", alias="uciMove"),
     resign: bool = Form(default=False),
     db: AsyncSession = Depends(async_db),
     state: AppState = Depends(app_state),
 ) -> Response:
     """Submit a move for a game - anyone can move (hotseat style)"""
-    from src.chess.render import render_board_html
     from src.chess.service import ChessService
     from src.database.models.game import Game
 
@@ -43,9 +42,8 @@ async def make_move(
         )
         await db.commit()
 
-        # Broadcast update
-        new_board_html = render_board_html(current_fen)
-        await state.game_broadcaster.broadcast_to_game(game_id, new_board_html)
+        # Broadcast FEN update - clients render with their own perspective
+        await state.game_broadcaster.broadcast_to_game(game_id, current_fen)
 
         return Response(status_code=200)
 
@@ -73,8 +71,7 @@ async def make_move(
 
     await db.commit()
 
-    # Broadcast update to all watchers
-    new_board_html = render_board_html(result.new_fen)
-    await state.game_broadcaster.broadcast_to_game(game_id, new_board_html)
+    # Broadcast FEN update - clients render with their own perspective
+    await state.game_broadcaster.broadcast_to_game(game_id, result.new_fen)
 
     return Response(status_code=200)

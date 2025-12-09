@@ -1,56 +1,47 @@
+{% extends "layout.html" %}
+
 {% block content %}
-<div class="container mx-auto px-4 py-16">
-    <div class="text-center max-w-2xl mx-auto">
-        <h1 class="text-4xl font-bold mb-4">
-            Play Chess Online
-        </h1>
-        <p class="text-xl text-muted-foreground mb-8">
-            A simple, real-time chess server built with Python and HTMX.
-            Play against friends with live updates.
-        </p>
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Games</h1>
 
-        <div class="flex gap-4 justify-center">
-            {% if user %}
-            <a href="/app/dashboard" class="uk-button uk-button-primary uk-button-large">
-                Go to Dashboard
-            </a>
-            {% else %}
-            <a href="/app/login" class="uk-button uk-button-primary uk-button-large">
-                Get Started
-            </a>
-            {% endif %}
-        </div>
+    {% if games %}
+    <div class="space-y-3">
+        {% for game in games %}
+        <a
+            href="/games/{{ game.id }}"
+            class="uk-card uk-card-default uk-card-body uk-card-hover block"
+        >
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="font-mono text-sm text-muted-foreground">
+                        {{ game.id[:8] }}
+                    </div>
+                    <div class="text-sm mt-1">
+                        {% if game.status == 'created' %}
+                            White to move
+                        {% elif game.status == 'active' %}
+                            In progress
+                        {% else %}
+                            {% if game.winner == 'draw' %}
+                                Draw — {{ game.outcome }}
+                            {% else %}
+                                {{ game.winner|capitalize }} wins — {{ game.outcome }}
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                <span class="uk-badge {% if game.status == 'complete' %}uk-badge-secondary{% endif %}">
+                    {{ game.status }}
+                </span>
+            </div>
+        </a>
+        {% endfor %}
     </div>
-
-    <!-- Features -->
-    <div class="grid md:grid-cols-3 gap-8 mt-16">
-        <div class="uk-card uk-card-default uk-card-body">
-            <h3 class="uk-card-title flex items-center gap-2">
-                <span>⚡</span> Real-time
-            </h3>
-            <p class="text-muted-foreground">
-                Watch games update live with Server-Sent Events.
-                No page refreshes needed.
-            </p>
-        </div>
-        <div class="uk-card uk-card-default uk-card-body">
-            <h3 class="uk-card-title flex items-center gap-2">
-                <span>🎯</span> Simple
-            </h3>
-            <p class="text-muted-foreground">
-                Click to select a piece, click again to move.
-                All moves validated server-side.
-            </p>
-        </div>
-        <div class="uk-card uk-card-default uk-card-body">
-            <h3 class="uk-card-title flex items-center gap-2">
-                <span>🔒</span> Secure
-            </h3>
-            <p class="text-muted-foreground">
-                Sign in with Google. Only you can make moves
-                for your color.
-            </p>
-        </div>
+    {% else %}
+    <div class="uk-card uk-card-default uk-card-body text-center text-muted-foreground">
+        <p>No games yet.</p>
+        <a href="/games/new" class="uk-button uk-button-primary mt-4">Create your first game</a>
     </div>
+    {% endif %}
 </div>
 {% endblock %}

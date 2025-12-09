@@ -1,0 +1,126 @@
+#!/bin/bash
+
+# Vault - 1Password integration for secrets management
+
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}")/.." && pwd )"
+
+source "$PROJECT_ROOT/bin/utils"
+source "$PROJECT_ROOT/bin/config"
+
+# Validate that cloud provider vault exists in 1Password
+validate_vaults() {
+    if ! op vault list --format=json 2>/dev/null | jq -e ".[] | select(.name == \"$CLOUD_VAULT\")" > /dev/null 2>&1; then
+        echo "Error: Vault '$CLOUD_VAULT' not found in 1Password" >&2
+        return 1
+    fi
+}
+
+validate_vaults
+
+# Validate 1Password authentication
+validate_op_auth() {
+    op account get > /dev/null 2>&1
+}
+
+validate_op_auth
+
+# Run commands with vault secrets injected
+run_with_vault() {
+    local RUN_ARGS=()
+
+    # Skip --stage argument if provided (kept for compatibility)
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --stage)
+                shift 2
+                ;;
+            --)
+                shift
+                RUN_ARGS=("$@")
+                break
+                ;;
+            *)
+                RUN_ARGS=("$@")
+                break
+                ;;
+        esac
+    done
+
+    if [ ${#RUN_ARGS[@]} -eq 0 ]; then
+        echo "Error: No command specified to run"
+        return 1
+    fi
+
+    export PROJECT_NAME=$PROJECT_NAME
+    export CLOUD_VAULT=$CLOUD_VAULT
+
+    op run --env-file="$PROJECT_ROOT/.env.vault" --no-masking -- "${RUN_ARGS[@]}"
+}
+
+# Read a single value from vault
+read_from_vault() {
+    local KEY="$1"
+
+    if [ -z "$KEY" ]; then
+        echo "Error: Please specify a key to read from vault" >&2
+        echo "Usage: $0 read <KEY>" >&2
+        return 1
+    fi
+
+    export PROJECT_NAME=$PROJECT_NAME
+    export CLOUD_VAULT=$CLOUD_VAULT
+
+    local VALUE=$(grep "^${KEY}=" "$PROJECT_ROOT/.env.vault" | cut -d'=' -f2-)
+
+    if [ -z "$VALUE" ]; then
+        echo "Error: Key '$KEY' not found in .env.vault" >&2
+        return 1
+    fi
+
+    VALUE=$(eval echo "$VALUE")
+
+    if [[ "$VALUE" == op://* ]]; then
+        op read "$VALUE" 2>/dev/null || {
+            echo "Error: Failed to read '$VALUE' from 1Password" >&2
+            return 1
+        }
+    else
+        echo "$VALUE"
+    fi
+}
+
+help() {
+    echo "Vault - 1Password integration for secrets"
+    echo ""
+    echo "Usage:"
+    echo "  $0 read <KEY>      - Read a specific value from vault"
+    echo "  $0 run -- <cmd>    - Run command with vault secrets injected"
+    echo ""
+    echo "Examples:"
+    echo "  $0 read DOCKER_HUB_USERNAME"
+    echo "  $0 run -- terraform apply"
+}
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    CMD="${1:-help}"
+
+    case "$CMD" in
+        read)
+            shift
+            read_from_vault "$@"
+            ;;
+        run)
+            shift
+            run_with_vault "$@"
+            ;;
+        help|--help)
+            help
+            ;;
+        *)
+            help
+            ;;
+    esac
+else
+    export -f run_with_vault
+    export -f read_from_vault
+fi

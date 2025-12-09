@@ -1,7 +1,7 @@
 """Game, Position, and Move database models"""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, func
@@ -22,7 +22,7 @@ class Position(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
     fen = Column(String, unique=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     @staticmethod
     async def get_or_create(
@@ -55,7 +55,7 @@ class Move(Base):
     position_id = Column(String, ForeignKey("positions.id"), nullable=False)
     move_number = Column(Integer, nullable=False)
     uci_move = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     position = relationship("Position")
 
@@ -73,8 +73,12 @@ class Game(Base):
     outcome = Column(String, nullable=True)  # checkmate, stalemate, resignation, etc.
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
 
     # Relationships
     moves = relationship("Move", backref="game", order_by="Move.move_number")

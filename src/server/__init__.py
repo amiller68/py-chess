@@ -3,10 +3,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
-from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException
 from watchfiles import awatch
 
@@ -54,8 +54,25 @@ def create_app(app_state: AppState) -> FastAPI:
             finally:
                 await session.close()
 
+    templates = Jinja2Templates(directory="templates")
+
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
+        # Return JSON for API routes, HTML for everything else
+        if request.url.path.startswith("/api"):
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={"detail": exc.detail},
+            )
+
+        # For 404s on non-API routes, return nice HTML page
+        if exc.status_code == 404:
+            return HTMLResponse(
+                content=templates.TemplateResponse("pages/404.html", {"request": request}).body,
+                status_code=404,
+            )
+
+        # Other HTTP errors - return JSON for now
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
@@ -71,30 +88,29 @@ def create_app(app_state: AppState) -> FastAPI:
         dev_router = APIRouter()
 
         @dev_router.get("/dev/hot-reload")
-        async def hot_reload():
+        async def hot_reload(request: Request):
             async def event_generator():
                 watch_dirs = [Path("templates"), Path("src"), Path("static")]
                 try:
-                    watcher = awatch(*watch_dirs)
+                    watcher = awatch(*watch_dirs, stop_event=asyncio.Event())
                     print("✓ Hot reload watcher started")
 
                     yield {"event": "connected", "data": "Hot reload connected"}
 
                     async for changes in watcher:
+                        # Check if client disconnected
+                        if await request.is_disconnected():
+                            break
                         if changes:
                             for change_type, path in changes:
                                 print(f"Hot reload: {change_type} {path}")
                             yield {"event": "reload", "data": "reload"}
                 except asyncio.CancelledError:
-                    print("Hot reload cancelled")
-                    raise
+                    pass  # Clean shutdown
                 finally:
                     print("Hot reload cleanup")
 
-            return EventSourceResponse(
-                event_generator(),
-                background=BackgroundTask(lambda: print("Hot reload connection closed")),
-            )
+            return EventSourceResponse(event_generator())
 
         app.include_router(dev_router)
 

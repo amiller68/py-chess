@@ -35,39 +35,54 @@ lint: ## Run linter
 	@uv run ruff check .
 
 .PHONY: types
-types: ## Type check with mypy
-	@uv run mypy src
+types: ## Type check with ty
+	@uv run ty check src
 
 .PHONY: check
 check: fmt-check lint types test ## Run all checks
 
-.PHONY: db-up
-db-up: ## Start PostgreSQL with Docker (port 5434)
-	@docker run -d --name chess-postgres \
-		-e POSTGRES_USER=chess \
-		-e POSTGRES_PASSWORD=chess \
-		-e POSTGRES_DB=chess \
-		-p 5434:5432 \
-		postgres:16 || docker start chess-postgres
+.PHONY: db
+db: ## Database management (up, down, migrate, status, etc.)
+	@./bin/db.sh $(filter-out $@,$(MAKECMDGOALS))
 
-.PHONY: db-down
-db-down: ## Stop PostgreSQL container
-	@docker stop chess-postgres || true
+# Catch additional arguments to db command
+%:
+	@:
 
-.PHONY: db-migrate
-db-migrate: ## Run database migrations
-	@uv run alembic upgrade head
+.PHONY: tfc
+tfc: ## Terraform Cloud management (up, status)
+	@./bin/tfc $(filter-out $@,$(MAKECMDGOALS))
 
-.PHONY: db-revision
-db-revision: ## Create a new migration (usage: make db-revision m="description")
-	@uv run alembic revision --autogenerate -m "$(m)"
+.PHONY: iac
+iac: ## Infrastructure management (production init, production apply, etc.)
+	@./bin/iac $(filter-out $@,$(MAKECMDGOALS))
+
+.PHONY: kamal
+kamal: ## Kamal deployment (chess production deploy, chess production logs, etc.)
+	@./bin/kamal $(filter-out $@,$(MAKECMDGOALS))
+
+.PHONY: deploy
+deploy: ## Deploy to production (shortcut for: kamal chess production deploy)
+	@./bin/kamal chess production deploy
+
+.PHONY: docker-build
+docker-build: ## Build Docker image
+	@docker build -t py-chess .
+
+.PHONY: docker-run
+docker-run: ## Run with Docker Compose (app + postgres)
+	@docker compose up --build
+
+.PHONY: docker-down
+docker-down: ## Stop Docker Compose services
+	@docker compose down
 
 .PHONY: clean
 clean: ## Clean build artifacts
 	@echo "Cleaning Python build artifacts..."
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".ty_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
 	@echo "✓ Clean complete"

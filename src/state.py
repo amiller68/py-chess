@@ -57,9 +57,10 @@ class GameBroadcaster:
             self._channels[game_id] = GameChannel(game_id)
         return self._channels[game_id]
 
-    async def broadcast_to_game(self, game_id: str, html: str) -> None:
+    async def broadcast_to_game(self, game_id: str, fen: str) -> None:
+        """Broadcast FEN to all subscribers - each client renders with own perspective"""
         channel = await self.get_channel(game_id)
-        await channel.broadcast(html, f"game-update-{game_id}")
+        await channel.broadcast(fen, f"fen-update-{game_id}")
 
 
 @dataclass
