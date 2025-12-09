@@ -21,29 +21,61 @@
             </span>
             {% endif %}
         </div>
-        <button
-            id="shareBtn"
-            onclick="copyShareLink()"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
-            title="Copy game link"
-        >
-            <svg id="shareLinkIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-            <svg id="shareCheckIcon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            <span id="shareText">Share</span>
-        </button>
+        <div class="flex items-center gap-2">
+            <!-- Engine toggle button -->
+            <button
+                id="engineToggle"
+                onclick="toggleEngine()"
+                class="engine-toggle"
+                title="Toggle engine analysis"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                <span class="engine-toggle-text">Engine</span>
+            </button>
+
+            <!-- Share button -->
+            <button
+                id="shareBtn"
+                onclick="copyShareLink()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-md border text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+                title="Copy game link"
+            >
+                <svg id="shareLinkIcon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                <svg id="shareCheckIcon" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span id="shareText">Share</span>
+            </button>
+        </div>
     </div>
 
     <!-- Game board with SSE -->
-    <div
-        id="board-container"
-        hx-ext="sse"
-        sse-connect="/api/v0/games/{{ game.id }}/stream{% if pinned_perspective %}?perspective={{ perspective }}{% endif %}"
-        sse-swap="game-update-{{ game.id }}"
-        class="mb-6"
-        data-perspective="{{ perspective }}"
-    >
-        {{ board_html|safe }}
+    <div class="board-wrapper">
+        <!-- SVG overlay for best move arrow -->
+        <svg id="arrowOverlay" class="arrow-overlay"></svg>
+
+        <div
+            id="board-container"
+            hx-ext="sse"
+            sse-connect="/api/v0/games/{{ game.id }}/stream{% if pinned_perspective %}?perspective={{ perspective }}{% endif %}"
+            sse-swap="game-update-{{ game.id }}"
+            data-perspective="{{ perspective }}"
+            data-fen="{{ current_fen }}"
+        >
+            {{ board_html|safe }}
+        </div>
     </div>
+
+    <!-- Engine analysis overlay -->
+    <div id="engineOverlay" class="engine-overlay" style="display: none;">
+        <div class="eval-bar-container">
+            <div id="evalBar" class="eval-bar"></div>
+        </div>
+        <div class="engine-info">
+            <span id="evalScore">0.00</span>
+            <span id="bestMove">—</span>
+        </div>
+    </div>
+
+    <div class="mb-6"></div>
 
     <!-- Move form (hidden until piece is selected) -->
     {% if can_move and game.status != 'complete' %}
@@ -103,6 +135,7 @@
 </div>
 
 <script src="/static/js/board.js"></script>
+<script src="/static/js/engine.js"></script>
 <script>
     // Share link copy (with fallback for non-HTTPS)
     function copyShareLink() {
@@ -153,6 +186,9 @@
     document.addEventListener("DOMContentLoaded", function() {
         if (typeof initBoard === 'function') {
             initBoard();
+        }
+        if (typeof initEngineOverlay === 'function') {
+            initEngineOverlay();
         }
     });
 
