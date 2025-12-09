@@ -4,9 +4,8 @@ from enum import Enum as PyEnum
 from typing import Any, Dict, Set
 
 from fastapi import Request
-from fastapi_sso.sso.google import GoogleSSO
 
-from src.config import Config, Secrets
+from src.config import Config
 from src.database import AsyncDatabase
 from src.logger import Logger
 
@@ -68,25 +67,16 @@ class AppState:
     """Application state container"""
 
     config: Config
-    google_sso: GoogleSSO
     database: AsyncDatabase
     logger: Logger
-    secrets: Secrets
     game_broadcaster: GameBroadcaster = field(default_factory=GameBroadcaster)
 
     @classmethod
     def from_config(cls, config: Config) -> "AppState":
         state = cls(
             config=config,
-            google_sso=GoogleSSO(
-                config.secrets.google_client_id,
-                config.secrets.google_client_secret,
-                redirect_uri=config.auth_redirect_uri,
-                allow_insecure_http=config.dev_mode,
-            ),
             database=AsyncDatabase(config.postgres_async_url),
             logger=Logger(None, config.debug),
-            secrets=config.secrets,
         )
         return state
 

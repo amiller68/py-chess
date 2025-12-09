@@ -1,4 +1,4 @@
-"""Initial schema with users, games, positions, and moves
+"""Initial schema with games, positions, and moves
 
 Revision ID: 001
 Revises:
@@ -19,17 +19,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Users table
-    op.create_table(
-        "users",
-        sa.Column("id", sa.String(), nullable=False),
-        sa.Column("email", sa.String(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), nullable=True),
-        sa.Column("updated_at", sa.DateTime(), nullable=True),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("email"),
-    )
-
     # Positions table (unique FEN states)
     op.create_table(
         "positions",
@@ -44,16 +33,12 @@ def upgrade() -> None:
     op.create_table(
         "games",
         sa.Column("id", sa.String(), nullable=False),
-        sa.Column("white_player_id", sa.String(), nullable=True),
-        sa.Column("black_player_id", sa.String(), nullable=True),
         sa.Column("status", sa.String(), nullable=False, server_default="created"),
         sa.Column("winner", sa.String(), nullable=True),
         sa.Column("outcome", sa.String(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=True),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
-        sa.ForeignKeyConstraint(["white_player_id"], ["users.id"]),
-        sa.ForeignKeyConstraint(["black_player_id"], ["users.id"]),
     )
 
     # Moves table
@@ -82,4 +67,3 @@ def downgrade() -> None:
     op.drop_table("moves")
     op.drop_table("games")
     op.drop_table("positions")
-    op.drop_table("users")

@@ -1,20 +1,11 @@
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 
-from . import dashboard, game, login
+from . import dashboard, game
 
 router = APIRouter()
 
-# Login page (unauthenticated)
-router.add_api_route(
-    "/login",
-    login.handler,
-    methods=["GET"],
-    response_class=HTMLResponse,
-    response_model=None,  # Returns HTMLResponse or RedirectResponse
-)
-
-# Dashboard (authenticated)
+# Dashboard (main page)
 router.add_api_route(
     "/dashboard",
     dashboard.handler,

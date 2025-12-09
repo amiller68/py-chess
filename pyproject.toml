@@ -22,11 +22,6 @@ dependencies = [
     # Templating
     "jinja2>=3.1",
 
-    # Authentication
-    "fastapi-sso>=0.16",
-    "python-jose[cryptography]",
-    "types-python-jose",
-
     # SSE for real-time updates
     "sse-starlette>=2.1",
 

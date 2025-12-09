@@ -15,7 +15,7 @@ load_dotenv()
 
 # Import Base and all models to ensure they're registered
 from src.database.database import Base  # noqa: E402
-from src.database.models import Game, Move, Position, User  # noqa: E402, F401
+from src.database.models import Game, Move, Position  # noqa: E402, F401
 
 config = context.config
 

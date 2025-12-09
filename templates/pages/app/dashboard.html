@@ -1,7 +1,7 @@
 {% block content %}
 <div>
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Dashboard</h1>
+        <h1 class="text-2xl font-bold">Games</h1>
         <a
             href="/app/games/new"
             hx-get="/app/games/new"
@@ -14,10 +14,8 @@
         </a>
     </div>
 
-    <!-- Active Games -->
+    <!-- Games List -->
     <div class="mb-8">
-        <h2 class="text-lg font-semibold mb-4">Your Games</h2>
-
         {% if games %}
         <div class="grid gap-4">
             {% for game in games %}
@@ -35,14 +33,14 @@
                         </div>
                         <div class="text-sm text-muted-foreground">
                             {% if game.status == 'created' %}
-                                Waiting for opponent
+                                New game - white to move
                             {% elif game.status == 'active' %}
                                 In progress
                             {% else %}
                                 {% if game.winner == 'draw' %}
-                                    Draw
+                                    Draw - {{ game.outcome }}
                                 {% else %}
-                                    {{ game.winner|capitalize }} wins
+                                    {{ game.winner|capitalize }} wins by {{ game.outcome }}
                                 {% endif %}
                             {% endif %}
                         </div>

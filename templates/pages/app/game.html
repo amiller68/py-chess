@@ -5,7 +5,7 @@
             <h1 class="text-2xl font-bold">Game</h1>
             <p class="text-sm text-muted-foreground">{{ game.id }}</p>
         </div>
-        <div>
+        <div class="flex items-center gap-4">
             {% if game.status == 'complete' %}
             <span class="uk-badge uk-badge-secondary">
                 {% if game.winner == 'draw' %}
@@ -16,7 +16,7 @@
             </span>
             {% else %}
             <span class="uk-badge uk-badge-primary">
-                {{ game.status }}
+                {{ turn|capitalize }} to move
             </span>
             {% endif %}
         </div>
@@ -58,18 +58,16 @@
     </form>
     {% endif %}
 
-    <!-- Share link for inviting opponent -->
-    {% if game.status == 'created' %}
+    <!-- Share link -->
     <div class="uk-card uk-card-default uk-card-body mt-6">
-        <h3 class="font-semibold mb-2">Invite Opponent</h3>
+        <h3 class="font-semibold mb-2">Share Game</h3>
         <p class="text-sm text-muted-foreground mb-2">
-            Share this link with a friend to play:
+            Share this link with someone to play together (hotseat style):
         </p>
         <code class="block p-2 bg-muted rounded text-sm break-all">
             {{ request.url }}
         </code>
     </div>
-    {% endif %}
 </div>
 
 <script src="/static/js/board.js"></script>

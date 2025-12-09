@@ -3,10 +3,9 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
-from starlette import status
 from starlette.background import BackgroundTask
 from starlette.exceptions import HTTPException
 from watchfiles import awatch
@@ -14,7 +13,6 @@ from watchfiles import awatch
 from src.state import AppState
 
 from .api import router as api_router
-from .auth import router as auth_router
 from .health import router as health_router
 from .pages import router as pages_router
 
@@ -58,13 +56,6 @@ def create_app(app_state: AppState) -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
-        # Redirect unauthorized users to login
-        if exc.status_code in [
-            status.HTTP_401_UNAUTHORIZED,
-            status.HTTP_403_FORBIDDEN,
-        ]:
-            if not request.url.path.startswith("/app/login"):
-                return RedirectResponse(url="/app/login", status_code=status.HTTP_302_FOUND)
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
@@ -113,7 +104,6 @@ def create_app(app_state: AppState) -> FastAPI:
     # Include routers
     app.include_router(pages_router)
     app.include_router(api_router, prefix="/api")
-    app.include_router(auth_router, prefix="/auth")
     app.include_router(health_router, prefix="/_status")
 
     @app.get("/up")

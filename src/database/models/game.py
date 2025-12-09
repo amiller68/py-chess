@@ -67,10 +67,6 @@ class Game(Base):
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
 
-    # Players
-    white_player_id = Column(String, ForeignKey("users.id"), nullable=True)
-    black_player_id = Column(String, ForeignKey("users.id"), nullable=True)
-
     # Game status
     status = Column(String, default="created", nullable=False)  # created, active, complete
     winner = Column(String, nullable=True)  # white, black, draw
@@ -85,17 +81,12 @@ class Game(Base):
 
     @staticmethod
     async def create(
-        white_player_id: Optional[str],
-        black_player_id: Optional[str],
         session: AsyncSession,
         logger: Logger | None = None,
     ) -> "Game":
         """Create a new game"""
         try:
-            game = Game(
-                white_player_id=white_player_id,
-                black_player_id=black_player_id,
-            )
+            game = Game()
             session.add(game)
             await session.flush()
             return game
@@ -118,15 +109,13 @@ class Game(Base):
             raise DatabaseException.from_sqlalchemy_error(e)
 
     @staticmethod
-    async def get_user_games(
-        user_id: str, session: AsyncSession, logger: Logger | None = None
+    async def get_all_games(
+        session: AsyncSession, logger: Logger | None = None, limit: int = 50
     ) -> list["Game"]:
-        """Get all games for a user"""
+        """Get all games, ordered by most recently updated"""
         try:
             result = await session.execute(
-                select(Game)
-                .filter((Game.white_player_id == user_id) | (Game.black_player_id == user_id))
-                .order_by(Game.updated_at.desc())
+                select(Game).order_by(Game.updated_at.desc()).limit(limit)
             )
             return list(result.scalars().all())
         except Exception as e:

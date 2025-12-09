@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.database.models import User
-from src.server.deps import app_state, async_db, require_logged_in_user
+from src.server.deps import app_state, async_db
 from src.state import AppState
 
 router = APIRouter()
@@ -11,15 +10,13 @@ router = APIRouter()
 
 @router.post("/{game_id}/move")
 async def make_move(
-    request: Request,
     game_id: str,
     uci_move: str = Form(alias="uciMove"),
     resign: bool = Form(default=False),
-    user: User = Depends(require_logged_in_user),
     db: AsyncSession = Depends(async_db),
     state: AppState = Depends(app_state),
 ) -> Response:
-    """Submit a move for a game"""
+    """Submit a move for a game - anyone can move (hotseat style)"""
     from src.chess.render import render_board_html
     from src.chess.service import ChessService
     from src.database.models.game import Game
@@ -33,13 +30,7 @@ async def make_move(
 
     # Get current position
     current_fen = await game.get_current_fen(session=db)
-
-    # Validate it's the user's turn
     turn = ChessService.get_turn(current_fen)
-    if turn == "white" and str(game.white_player_id) != str(user.id):
-        raise HTTPException(status_code=403, detail="Not your turn")
-    elif turn == "black" and str(game.black_player_id) != str(user.id):
-        raise HTTPException(status_code=403, detail="Not your turn")
 
     # Handle resignation
     if resign:

@@ -21,7 +21,7 @@
                         class="flex items-center"
                     >
                         <uk-icon icon="grid" class="mr-3"></uk-icon>
-                        Dashboard
+                        Games
                     </a>
                 </li>
                 <li id="nav-new-game">
@@ -37,25 +37,6 @@
                     </a>
                 </li>
             </ul>
-        </div>
-
-        <!-- User info at bottom -->
-        <div class="p-4 border-t bg-background">
-            <div
-                id="user-info"
-                hx-get="/api/v0/auth/whoami"
-                hx-trigger="load"
-                class="mb-3"
-            >
-                <!-- User info will be loaded here -->
-            </div>
-            <a
-                href="/auth/logout"
-                class="uk-button uk-button-default uk-width-1-1 flex items-center justify-center"
-            >
-                <uk-icon icon="log-out" class="mr-2"></uk-icon>
-                Logout
-            </a>
         </div>
     </aside>
 
