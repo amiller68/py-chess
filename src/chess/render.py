@@ -53,7 +53,7 @@ def render_board_html(fen: str, perspective: str = "white") -> str:
 
     legal_moves_json = json.dumps(legal_moves_map)
 
-    html = f'<table id="chessboard" class="chess-board" data-legal-moves=\'{legal_moves_json}\'>'
+    html = f'<table id="chessboard" class="chess-board" data-legal-moves=\'{legal_moves_json}\' data-fen="{fen}">'
 
     # Determine iteration order based on perspective
     if perspective == "white":
