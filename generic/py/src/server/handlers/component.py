@@ -1,9 +1,9 @@
+from typing import Any, Dict
+
 from fastapi import Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
-from typing import Any, Dict
-
 
 templates = Jinja2Templates(directory="templates")
 
@@ -23,7 +23,6 @@ class ComponentResponseHandler:
         if isinstance(data, BaseModel):
             response_data = data.model_dump()
         else:
-
             print(f"data: {data}")
             response_data = data
 

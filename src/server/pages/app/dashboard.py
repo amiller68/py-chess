@@ -3,9 +3,8 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models import User
-
-from ...deps import async_db, require_logged_in_user
-from ...handlers import PageResponse
+from src.server.deps import async_db, require_logged_in_user
+from src.server.handlers import PageResponse
 
 
 async def handler(

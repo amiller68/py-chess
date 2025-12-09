@@ -1,8 +1,9 @@
-from sqlalchemy import create_engine
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
 from contextlib import asynccontextmanager
 from enum import Enum as PyEnum
+
+from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()
 
@@ -98,9 +99,7 @@ class AsyncDatabase:
             echo=False,
         )
 
-        self.AsyncSession = sessionmaker(
-            self.engine, expire_on_commit=False, class_=AsyncSession
-        )
+        self.AsyncSession = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
     async def initialize(self):
         # Create tables

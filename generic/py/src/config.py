@@ -1,6 +1,7 @@
-from dotenv import load_dotenv
 import os
 from enum import Enum as PyEnum
+
+from dotenv import load_dotenv
 
 # TODO: storage
 # TODO: task manager
@@ -120,9 +121,7 @@ class Config:
         )
 
         # Marketing site URL with safe default
-        self.marketing_site_url = os.getenv(
-            "MARKETING_SITE_URL", "http://localhost:3000"
-        )
+        self.marketing_site_url = os.getenv("MARKETING_SITE_URL", "http://localhost:3000")
 
         # TODO (amiller68): is this the correct way to handle postgres urls?
         #  i.e. what if we're pooling?

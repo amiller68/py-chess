@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from fastapi.responses import RedirectResponse
+
 from . import dashboard, login, settings
 
 router = APIRouter()

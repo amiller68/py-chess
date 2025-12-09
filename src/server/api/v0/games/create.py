@@ -4,8 +4,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models import User
-
-from .....deps import async_db, require_logged_in_user
+from src.server.deps import async_db, require_logged_in_user
 
 router = APIRouter()
 
@@ -14,7 +13,7 @@ class CreateGameRequest(BaseModel):
     play_as: str = "white"  # "white", "black", or "random"
 
 
-@router.post("")
+@router.post("/")
 async def create_game(
     request: CreateGameRequest,
     user: User = Depends(require_logged_in_user),

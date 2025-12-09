@@ -1,17 +1,17 @@
 from fastapi import (
-    Request,
     Depends,
     HTTPException,
+    Request,
     Security,
 )
 from fastapi.security import APIKeyCookie
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_sso.sso.base import OpenID
 from jose import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.state import AppState
 from src.database.models import User
 from src.logger import Logger
+from src.state import AppState
 
 SESION_COOKIE_NAME = "session"
 
@@ -35,22 +35,16 @@ async def get_logged_in_user(
     app_state: AppState = Depends(app_state),
 ) -> User:
     try:
-        claims = jwt.decode(
-            cookie, key=app_state.secrets.service_secret, algorithms=["HS256"]
-        )
+        claims = jwt.decode(cookie, key=app_state.secrets.service_secret, algorithms=["HS256"])
         openid = OpenID(**claims["pld"])
 
         if not openid.email:
             raise ValueError("Email is required")
 
-        user = await User.read_by_email(
-            email=openid.email, session=async_db, logger=logger
-        )
+        user = await User.read_by_email(email=openid.email, session=async_db, logger=logger)
         if not user:
             logger.info(f"Creating new user: {openid.email}")
-            user = await User.create(
-                email=openid.email, session=async_db, logger=logger
-            )
+            user = await User.create(email=openid.email, session=async_db, logger=logger)
             await async_db.commit()
 
         return user

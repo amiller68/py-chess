@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Request, Depends, HTTPException
-from fastapi.responses import RedirectResponse
 import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import RedirectResponse
 from jose import jwt
 
 from ..deps import app_state
@@ -26,9 +27,7 @@ async def google_callback(request: Request, state=Depends(app_state)):
     if not openid:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    expiration = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(
-        days=1
-    )
+    expiration = datetime.datetime.now(tz=datetime.timezone.utc) + datetime.timedelta(days=1)
     token = jwt.encode(
         {"pld": openid.dict(), "exp": expiration, "sub": openid.id},
         key=state.secrets.service_secret,

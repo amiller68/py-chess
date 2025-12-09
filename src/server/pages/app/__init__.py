@@ -11,6 +11,7 @@ router.add_api_route(
     login.handler,
     methods=["GET"],
     response_class=HTMLResponse,
+    response_model=None,  # Returns HTMLResponse or RedirectResponse
 )
 
 # Dashboard (authenticated)

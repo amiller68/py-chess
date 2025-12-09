@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
-from . import index, app
+
+from . import app, index
 
 router = APIRouter()
 

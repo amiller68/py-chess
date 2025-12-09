@@ -44,7 +44,7 @@ class Secrets:
             f"google_client_secret={mask_secret(self.google_client_secret)})"
         )
 
-    def __init__(self) -> None:
+    def __init__(self, dev_mode: bool = False) -> None:
         # Service secret - auto-generate if not provided
         self.service_secret = empty_to_none("SERVICE_SECRET") or ""
         if not self.service_secret:
@@ -57,16 +57,25 @@ class Secrets:
         self.google_client_id = empty_to_none("GOOGLE_O_AUTH_CLIENT_ID") or ""
         self.google_client_secret = empty_to_none("GOOGLE_O_AUTH_CLIENT_SECRET") or ""
 
-        if not self.google_client_id:
-            raise ConfigException(
-                ConfigExceptionType.missing_env_var,
-                "GOOGLE_O_AUTH_CLIENT_ID environment variable must be set",
-            )
-        if not self.google_client_secret:
-            raise ConfigException(
-                ConfigExceptionType.missing_env_var,
-                "GOOGLE_O_AUTH_CLIENT_SECRET environment variable must be set",
-            )
+        # In dev mode, use placeholder values if not set (auth will still work for testing)
+        if dev_mode:
+            if not self.google_client_id:
+                self.google_client_id = "dev-mode-placeholder"
+                print("WARNING: Using placeholder GOOGLE_O_AUTH_CLIENT_ID (auth won't work)")
+            if not self.google_client_secret:
+                self.google_client_secret = "dev-mode-placeholder"
+                print("WARNING: Using placeholder GOOGLE_O_AUTH_CLIENT_SECRET (auth won't work)")
+        else:
+            if not self.google_client_id:
+                raise ConfigException(
+                    ConfigExceptionType.missing_env_var,
+                    "GOOGLE_O_AUTH_CLIENT_ID environment variable must be set",
+                )
+            if not self.google_client_secret:
+                raise ConfigException(
+                    ConfigExceptionType.missing_env_var,
+                    "GOOGLE_O_AUTH_CLIENT_SECRET environment variable must be set",
+                )
 
 
 class Config:
@@ -100,18 +109,21 @@ class Config:
             "AUTH_REDIRECT_URI", f"{self.host_name}/auth/google/callback"
         )
 
-        # PostgreSQL URL
+        # PostgreSQL URL (default for dev mode uses port 5434)
         postgres_url = empty_to_none("POSTGRES_URL")
         if not postgres_url:
-            raise ConfigException(
-                ConfigExceptionType.missing_env_var,
-                "POSTGRES_URL environment variable must be set",
-            )
+            if self.dev_mode:
+                postgres_url = "postgresql://chess:chess@localhost:5434/chess"
+            else:
+                raise ConfigException(
+                    ConfigExceptionType.missing_env_var,
+                    "POSTGRES_URL environment variable must be set",
+                )
         self.postgres_url = postgres_url
         self.postgres_async_url = postgres_url.replace("postgresql://", "postgresql+asyncpg://")
 
         # Debug mode
         self.debug = os.getenv("DEBUG", "True") == "True"
 
-        # Load secrets
-        self.secrets = Secrets()
+        # Load secrets (pass dev_mode to allow mock credentials)
+        self.secrets = Secrets(dev_mode=self.dev_mode)

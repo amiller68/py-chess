@@ -1,10 +1,9 @@
-from fastapi import Request, Depends
+from fastapi import Depends, Request
 
 from src.database.models import User
 from src.logger import Logger
-from src.server.deps import require_logged_in_user, logger
+from src.server.deps import logger, require_logged_in_user
 from src.server.handlers.component import ComponentResponseHandler
-
 
 # Handler instance - only returns components, never full pages
 responder = ComponentResponseHandler(

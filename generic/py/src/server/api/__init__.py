@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from . import v0
 
 # Create main HTML router

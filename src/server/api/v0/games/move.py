@@ -3,9 +3,8 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models import User
+from src.server.deps import app_state, async_db, require_logged_in_user
 from src.state import AppState
-
-from .....deps import app_state, async_db, require_logged_in_user
 
 router = APIRouter()
 

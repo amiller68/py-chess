@@ -1,4 +1,5 @@
 from fastapi import Request
+
 from src.server.handlers.page import PageResponse
 
 # Create page response helper

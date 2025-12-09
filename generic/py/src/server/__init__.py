@@ -1,20 +1,22 @@
-from fastapi import FastAPI, Request, APIRouter
-from fastapi.responses import RedirectResponse, JSONResponse
-from starlette.exceptions import HTTPException
-from starlette import status
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
-import asyncio
+
+from fastapi import APIRouter, FastAPI, Request
+from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
+from starlette import status
 from starlette.background import BackgroundTask
+from starlette.exceptions import HTTPException
 from watchfiles import awatch
 
-from fastapi.staticfiles import StaticFiles
 from src.state import AppState
-from .pages import router as pages_router
+
 from .api import router as api_router
 from .auth import router as auth_router
 from .health import router as health_router
+from .pages import router as pages_router
 
 
 def create_app(app_state: AppState) -> FastAPI:
@@ -58,9 +60,7 @@ def create_app(app_state: AppState) -> FastAPI:
     # Exception handler using the correct decorator syntax
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException):
-        print(
-            f"Exception handler called: {exc.status_code} - {request.url.path}"
-        )  # Debug
+        print(f"Exception handler called: {exc.status_code} - {request.url.path}")  # Debug
         # Redirect unauthorized users to login for protected pages
         if exc.status_code in [
             status.HTTP_401_UNAUTHORIZED,
@@ -68,9 +68,7 @@ def create_app(app_state: AppState) -> FastAPI:
         ]:
             # Don't redirect if already on login page
             if not request.url.path.startswith("/app/login"):
-                return RedirectResponse(
-                    url="/app/login", status_code=status.HTTP_302_FOUND
-                )
+                return RedirectResponse(url="/app/login", status_code=status.HTTP_302_FOUND)
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
@@ -98,9 +96,7 @@ def create_app(app_state: AppState) -> FastAPI:
                 try:
                     # Create a watcher for multiple directories
                     watcher = awatch(*watch_dirs)
-                    print(
-                        "✓ Hot reload watcher started for templates, src, and static directories"
-                    )
+                    print("✓ Hot reload watcher started for templates, src, and static directories")
 
                     # Send initial event to confirm connection
                     yield {"event": "connected", "data": "Hot reload connected"}
@@ -122,9 +118,7 @@ def create_app(app_state: AppState) -> FastAPI:
 
             return EventSourceResponse(
                 event_generator(),
-                background=BackgroundTask(
-                    lambda: print("Hot reload connection closed")
-                ),
+                background=BackgroundTask(lambda: print("Hot reload connection closed")),
             )
 
         # Include the hot reload router

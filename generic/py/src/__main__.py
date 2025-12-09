@@ -1,12 +1,13 @@
-import sys
-import uvicorn
-from typing import Optional
 import os
+import sys
+from typing import Optional
+
+import uvicorn
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__) + "/.."))
-from src.state import AppState
-from src.server import create_app
 from src.config import Config
+from src.server import create_app
+from src.state import AppState
 
 
 def init_state(config: Config) -> Optional[AppState]:

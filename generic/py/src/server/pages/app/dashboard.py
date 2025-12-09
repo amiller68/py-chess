@@ -1,10 +1,10 @@
-from fastapi import Request, Depends
+from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.models import User
-from src.server.deps import require_logged_in_user, async_db, logger
-from src.server.handlers.page import PageResponse
 from src.logger import Logger
+from src.server.deps import async_db, logger, require_logged_in_user
+from src.server.handlers.page import PageResponse
 
 # Create page response helper
 page = PageResponse(template="pages/app/dashboard.html", layout="layouts/app.html")

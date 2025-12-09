@@ -1,7 +1,9 @@
 import os
 import uuid
+
 import pytest
 import pytest_asyncio
+
 from src.database.database import AsyncDatabase
 from src.database.models.user import User
 

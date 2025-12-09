@@ -3,8 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.logger import Logger
-
-from src.server.deps import logger, async_db
+from src.server.deps import async_db, logger
 
 router = APIRouter()
 

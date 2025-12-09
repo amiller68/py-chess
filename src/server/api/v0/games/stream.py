@@ -3,9 +3,8 @@ import asyncio
 from fastapi import APIRouter, Depends, Request
 from sse_starlette.sse import EventSourceResponse
 
+from src.server.deps import app_state
 from src.state import AppState
-
-from .....deps import app_state
 
 router = APIRouter()
 

@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from . import auth
 
 # Create main HTML router

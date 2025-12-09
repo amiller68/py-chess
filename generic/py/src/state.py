@@ -1,14 +1,15 @@
+from dataclasses import dataclass
+from enum import Enum as PyEnum
+
 from fastapi import (
     Request,
 )
-from dataclasses import dataclass
 from fastapi_sso.sso.google import GoogleSSO
-from enum import Enum as PyEnum
 
+from src.config import Config, Secrets
 from src.database import (
     AsyncDatabase,
 )
-from src.config import Config, Secrets
 from src.logger import Logger
 
 # TODO: add storage
