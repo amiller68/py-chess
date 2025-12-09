@@ -20,7 +20,7 @@ from src.database.models import Game, Move, Position, User  # noqa: E402, F401
 config = context.config
 
 # Get database URL from environment
-database_url = os.getenv("POSTGRES_URL", "postgresql://chess:chess@localhost:5432/chess")
+database_url = os.getenv("POSTGRES_URL", "postgresql://chess:chess@localhost:5434/chess")
 config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:

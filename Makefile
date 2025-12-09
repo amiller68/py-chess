@@ -42,12 +42,12 @@ types: ## Type check with mypy
 check: fmt-check lint types test ## Run all checks
 
 .PHONY: db-up
-db-up: ## Start PostgreSQL with Docker
+db-up: ## Start PostgreSQL with Docker (port 5434)
 	@docker run -d --name chess-postgres \
 		-e POSTGRES_USER=chess \
 		-e POSTGRES_PASSWORD=chess \
 		-e POSTGRES_DB=chess \
-		-p 5432:5432 \
+		-p 5434:5432 \
 		postgres:16 || docker start chess-postgres
 
 .PHONY: db-down
