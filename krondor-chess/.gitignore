@@ -1,0 +1,4 @@
+/target
+/data
+.shuttle-storage
+Secrets*.toml

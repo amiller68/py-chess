@@ -1,0 +1,32 @@
+name: CI 🚀
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Python CI
+  py-ci:
+    name: Python CI
+    uses: ./.github/workflows/ci-py.yml
+    
+  # TypeScript CI
+  ts-ci:
+    name: TypeScript CI
+    uses: ./.github/workflows/ci-ts.yml
+    
+  ci-success:
+    name: CI Success
+    runs-on: ubuntu-latest
+    needs: [py-ci, ts-ci]
+    if: always()
+    steps:
+      - name: Check if all jobs succeeded
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+            echo "One or more jobs failed"
+            exit 1
+          fi
+          echo "All CI checks passed! ✅"

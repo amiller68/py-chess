@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# kamal - Simplified deployment script using Kamal with automatic configuration
+# Automatically loads secrets from 1Password and infrastructure outputs from Terraform
+
+set -euo pipefail
+
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+source "$PROJECT_ROOT/bin/utils"
+source "$PROJECT_ROOT/bin/config"
+source "$PROJECT_ROOT/bin/vault"
+
+# Function to show usage
+usage() {
+    local service_names=$(list_service_names)
+
+    echo -e "${YELLOW}Kamal Deployment Tool${NC}"
+    echo ""
+    echo "Usage: $0 <service> <stage> <command> [options]"
+    echo ""
+    echo " Where <service> is one of the following:"
+    echo "  ${service_names}"
+    echo " And <stage> is one of the following:"
+    echo "  ${STAGES}"
+    echo " And <command> is any valid Kamal command"
+    echo ""
+    echo "This will run the corresponding Kamal command for the service"
+    echo " defined in config/deploy/<service>.yml for the stage"
+    echo "Examples:"
+    echo "  $0 next production deploy      # Deploy Next.js app"
+    echo "  $0 py production logs          # View Python API logs"
+    echo ""
+    echo "Environment:"
+    echo "  Stage: ${STAGE:-production} (set with STAGE env var)"
+    exit 1
+}
+
+# Check arguments
+if [[ $# -lt 3 ]]; then
+    usage
+fi
+
+SERVICE="$1"
+STAGE="$2"
+shift 2
+
+# Validate and map service
+if ! is_in_list "$SERVICES" "$SERVICE"; then
+    print_error "Unknown service: $SERVICE"
+    echo "Available services: $SERVICES"
+    exit 1
+fi
+
+# Validate and map stage
+if ! is_in_list "$STAGES" "$STAGE"; then
+    print_error "Unknown stage: $STAGE"
+    echo "Available stages: $STAGES"
+    exit 1
+fi
+# if the stage is for the container-registry, then
+#  throw an error
+if [[ "$STAGE" == "container-registry" ]]; then
+    print_error "Container registry stage not supported for Kamal"
+    exit 1
+fi
+
+CONFIG_FILE="$PROJECT_ROOT/config/deploy/${SERVICE}.yml"
+# Check if config exists
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    print_error "Config file not found: $CONFIG_FILE. This should not happen."
+    exit 1
+fi
+
+# NOTE (amiller68): these are the default
+#  values we support for each stage, and should
+#  be supported without additional configuration
+#  in all of our kamal deployments.
+# They should be re-usable for all services across
+#  a given stage.
+export SERVER_IP=$("$PROJECT_ROOT/bin/iac" "$STAGE" output -raw server_ip 2>/dev/null | tail -n 1 || echo "")
+export SSH_PRIVATE_KEY=$("$PROJECT_ROOT/bin/iac" "$STAGE" output -raw ssh_private_key 2>/dev/null | tail -n -13 || echo "")
+export DOCKER_HUB_USERNAME=$("$PROJECT_ROOT/bin/vault" read DOCKER_HUB_USERNAME)
+export PROJECT_NAME=$PROJECT_NAME
+# Only write SSH key file if not in CI
+if [[ -z "${CI:-}" ]]; then
+    # Local: Use key file
+    SSH_PRIVATE_KEY_FILE="$PROJECT_ROOT/.kamal/ssh_key"
+    echo "$SSH_PRIVATE_KEY" > "$SSH_PRIVATE_KEY_FILE"
+    chmod 600 "$SSH_PRIVATE_KEY_FILE"
+    export SSH_PRIVATE_KEY_FILE
+    trap 'print_info "Cleaning up SSH private key file" && rm -f "$SSH_PRIVATE_KEY_FILE"' EXIT
+else
+    # CI: SSH agent is already set up, don't export SSH_PRIVATE_KEY_FILE
+    print_info "Running in CI - using SSH agent for authentication"
+fi
+
+# Determine the hostname for the service given the service name and stage
+HOST_NAME=$(get_service_hostname "$SERVICE" "$STAGE")
+export HOST_NAME
+# also export hostnames for other services in the same stage
+export_service_hostnames "$STAGE"
+
+print_info "Running Kamal for $SERVICE on $STAGE"
+echo "-> Using config file: $CONFIG_FILE"
+echo "-> Target hostname: $HOST_NAME"
+echo "-> Host: $SERVER_IP"
+
+# run kamal, injecting our vault - note that we don't quote the kamal args
+# so they get properly expanded in the run_with_vault context
+run_with_vault --stage "$STAGE" -- kamal "$@" -c "$CONFIG_FILE"

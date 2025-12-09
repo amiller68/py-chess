@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO games DEFAULT VALUES RETURNING\n                id as \"id: Uuid\",\n                created_at as \"created_at: OffsetDateTime\",\n                updated_at as \"updated_at: OffsetDateTime\",\n                status as \"status: GameStatus\",\n                winner as \"winner: GameWinner\",\n                outcome as \"outcome: GameOutcome\"\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id: Uuid",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "created_at: OffsetDateTime",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 2,
+        "name": "updated_at: OffsetDateTime",
+        "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 3,
+        "name": "status: GameStatus",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "winner: GameWinner",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "outcome: GameOutcome",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "17602c73cd0bf74a20007c7b9e1b8ed3809ccd439f4f4eff0216b4aba1021bc1"
+}
