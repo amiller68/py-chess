@@ -18,6 +18,7 @@ async def create_game(
         game = await Game.create(session=db)
         await db.commit()
 
+        # Use relative URL - ProxyHeadersMiddleware handles protocol correctly
         return RedirectResponse(url=f"/games/{game.id}", status_code=303)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
