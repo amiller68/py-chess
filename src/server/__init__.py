@@ -1,6 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any, cast
 
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -8,6 +9,8 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sse_starlette.sse import EventSourceResponse
 from starlette.exceptions import HTTPException
+from starlette.middleware import _MiddlewareFactory
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from watchfiles import awatch
 
 from src.state import AppState
@@ -82,6 +85,9 @@ def create_app(app_state: AppState) -> FastAPI:
     app.middleware("http")(state_middleware)
     app.middleware("http")(logger_middleware)
     app.middleware("http")(db_middleware)
+
+    # Trust proxy headers (X-Forwarded-Proto, X-Forwarded-For) for HTTPS behind reverse proxy
+    app.add_middleware(cast(_MiddlewareFactory[Any], ProxyHeadersMiddleware), trusted_hosts=["*"])
 
     # Hot reloading for development
     if app_state.config.dev_mode:
